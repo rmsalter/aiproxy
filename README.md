@@ -22,7 +22,14 @@ The server expects these variables:
 - GITHUB_TOKEN
 - PORT (optional, defaults to 3000)
 
-You can place keys in .env.modelkeys and the startup script will source them.
+The startup script reads GEMINI_API_KEY and GITHUB_TOKEN from .env.modelkeys.
+You can also set PORT in .env.modelkeys.
+
+Example .env.modelkeys:
+
+    GEMINI_API_KEY=your_gemini_key
+    GITHUB_TOKEN=your_github_token
+    PORT=3000
 
 ## How To Run
 
