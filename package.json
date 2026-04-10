@@ -1,0 +1,16 @@
+{
+  "name": "aiproxy",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Reverse proxy for submitting AI prompts",
+  "main": "server.cjs",
+  "scripts": {
+    "start": "start.sh",
+    "test": "node --test test/unit.test.js",
+    "test:live": "node --test test/test.js",
+    "test:all": "node --test test/unit.test.js test/test.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
