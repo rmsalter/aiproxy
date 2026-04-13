@@ -140,7 +140,7 @@ npm run test:live
 You can also target a deployed environment by overriding the test base URL:
 
 ```bash
-TEST_BASE_URL=https://aiproxy.numerusinc.com npm run test:live
+TEST_BASE_URL=https://${AIPROXY_DEPLOYED_URL} npm run test:live
 ```
 
 Requirements:
