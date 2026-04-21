@@ -7,8 +7,14 @@ const GEMINI_MODEL = process.env.GEMINI_MODEL;
 // const GEMINI_MODEL = "gemini-pro";
 const GH_URL = process.env.GH_URL;
 const GEMINI_URL = process.env.GEMINI_URL;
+const OPENROUTER_URL = process.env.OPENROUTER_URL;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
+
+function logMissingEnvWarning(routeLabel, envName) {
+  console.log(`${routeLabel} route disabled until ${envName} is set.`);
+}
 
 function sendJson(res, statusCode, payload) {
   res.writeHead(statusCode, {
@@ -66,7 +72,7 @@ async function handleGeminiPrompt(req, res) {
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: body 
+        body: body
       }
     );
 
@@ -90,44 +96,54 @@ async function handleGeminiPrompt(req, res) {
   }
 }
 
-async function handleGitHubModelsPrompt(req, res) {
-  if (!GITHUB_TOKEN) {
-    sendJson(res, 500, { error: "Missing GITHUB_TOKEN environment variable." });
-    return;
-  }
-
-  try {
-    const body = await readRequestBody(req);
-    const response = await fetch(GH_URL,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${GITHUB_TOKEN}`
-        },
-        body: body
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      const message = data && data.error && data.error.message
-        ? data.error.message
-        : "Upstream API error";
-      sendJson(res, response.status, { error: message });
+function handleOpenAIModelsPrompt(token, url, tokenName) {
+  return async function (req, res) {
+    if (!token) {
+      sendJson(res, 500, { error: `Missing ${tokenName} environment variable.` });
       return;
     }
 
-    const text = data.choices && data.choices[0] && data.choices[0].message
-      ? data.choices[0].message.content
-      : "No response text returned.";
+    if (!url) {
+      sendJson(res, 500, { error: "Missing upstream URL environment variable." });
+      return;
+    }
 
-    sendJson(res, 200, { text });
-  } catch (error) {
-    sendJson(res, 500, { error: error.message });
+    try {
+      const body = await readRequestBody(req);
+      const response = await fetch(url,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+          body: body
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        const message = data && data.error && data.error.message
+          ? data.error.message
+          : "Upstream API error";
+        sendJson(res, response.status, { error: message });
+        return;
+      }
+
+      const text = data.choices && data.choices[0] && data.choices[0].message
+        ? data.choices[0].message.content
+        : "No response text returned.";
+
+      sendJson(res, 200, { text });
+    } catch (error) {
+      sendJson(res, 500, { error: error.message });
+    }
   }
 }
+
+var handleGitHubModelsPrompt = handleOpenAIModelsPrompt(GITHUB_TOKEN, GH_URL, "GITHUB_TOKEN");
+var handleOpenRouterModelsPrompt = handleOpenAIModelsPrompt(OPENROUTER_API_KEY, OPENROUTER_URL, "OPENROUTER_API_KEY");
 
 const server = http.createServer((req, res) => {
   if (req.method === "OPTIONS") {
@@ -138,23 +154,27 @@ const server = http.createServer((req, res) => {
   const parsedUrl = new URL(req.url, `http://${req.headers.host || "localhost"}`);
   const pathname = parsedUrl.pathname;
 
-  if (req.method === "POST" && pathname === "/api/gemprompt") {
-    handleGeminiPrompt(req, res);
-    return;
+  if (req.method === "POST") {
+    switch (pathname) {
+      case "/api/gemprompt":
+        handleGeminiPrompt(req, res);
+        return;
+      case "/api/ghprompt":
+        handleGitHubModelsPrompt(req, res);
+        return;
+      case "/api/orprompt":
+        handleOpenRouterModelsPrompt(req, res);
+        return;
+      default:
+        break;
+    }
   }
-
-  if (req.method === "POST" && pathname === "/api/ghprompt") {
-    handleGitHubModelsPrompt(req, res);
-    return;
-  }
-
   if (req.method === "GET") {
     const safePath = pathname === "/" ? "/gemini-node.html" : pathname;
     const filePath = path.join(__dirname, safePath);
     sendFile(res, filePath);
     return;
   }
-
   res.writeHead(405, { "Content-Type": "text/plain" });
   res.end("Method Not Allowed");
 });
@@ -162,9 +182,21 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, () => {
   console.log(`Unified server running on http://localhost:${PORT}`);
   if (!GEMINI_API_KEY) {
-    console.log("Gemini route disabled until GEMINI_API_KEY is set.");
+    logMissingEnvWarning("Gemini", "GEMINI_API_KEY");
+  }
+  if (!GEMINI_URL) {
+    logMissingEnvWarning("Gemini", "GEMINI_URL");
   }
   if (!GITHUB_TOKEN) {
-    console.log("GitHub Models route disabled until GITHUB_TOKEN is set.");
+    logMissingEnvWarning("GitHub Models", "GITHUB_TOKEN");
+  }
+  if (!GH_URL) {
+    logMissingEnvWarning("GitHub Models", "GH_URL");
+  }
+  if (!OPENROUTER_API_KEY) {
+    logMissingEnvWarning("OpenRouter", "OPENROUTER_API_KEY");
+  }
+  if (!OPENROUTER_URL) {
+    logMissingEnvWarning("OpenRouter", "OPENROUTER_URL");
   }
 });

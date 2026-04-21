@@ -1,4 +1,5 @@
 const GH_MODEL = "gpt-4o-mini";
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "openai/gpt-4o-mini";
 
 class ChatManager {
     constructor(){this.counter = 0;};
@@ -67,4 +68,30 @@ class ChatGPTChatManager extends ChatManager {
   }
 }
 
-export {GeminiChatManager, ChatGPTChatManager}
+class OpenRouterChatManager extends ChatManager {
+  constructor(systemInstruction) {
+    super()
+    this.system_instruction = { role: "system", content: systemInstruction };
+    this.messages = [this.system_instruction];
+  }
+  setSystemInstruction(systemInstruction) {
+    this.system_instruction.content = systemInstruction;
+  }
+  prepareRequest(userPrompt) {
+    this.messages.push({ role: "user", content: userPrompt });
+    return {
+      model: OPENROUTER_MODEL,
+      messages: this.messages
+    };
+  }
+  addModelResponse(responseText) {
+    super.addModelResponse();
+    this.messages.push({ role: "assistant", content: responseText });
+  }
+  clearHistory() {
+    super.clearHistory();
+    this.messages = [this.system_instruction];
+  }
+}
+
+export {GeminiChatManager, ChatGPTChatManager, OpenRouterChatManager}

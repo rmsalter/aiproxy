@@ -1,11 +1,13 @@
 import test from "node:test";
 
-import { callGitHubModelsRequest, callGeminiRequest } from "./endpoints.js";
+import { callGitHubModelsRequest, callGeminiRequest, callOpenRouterModelsRequest } from "./endpoints.js";
 import {
   assertChatGPTHistory,
   assertGeminiHistory,
+  assertOpenRouterHistory,
   createChatGPTAssistant,
   createGeminiAssistant,
+  createOpenRouterAssistant,
   runPrompt,
   runProviderAssertion
 } from "./support.js";
@@ -30,6 +32,16 @@ async function callChatGPT(assistant, userPrompt) {
   );
 }
 
+async function callOpenRouter(assistant, userPrompt) {
+  return runPrompt(
+    "OpenRouter",
+    assistant,
+    userPrompt,
+    callOpenRouterModelsRequest,
+    "OpenRouter response did not include any text."
+  );
+}
+
 test("Gemini proxy preserves conversational context", async (testContext) => {
   await runProviderAssertion(
     testContext,
@@ -49,5 +61,16 @@ test("ChatGPT proxy preserves conversational context", async (testContext) => {
     callChatGPT,
     (assistant) => assistant.messages,
     assertChatGPTHistory
+  );
+});
+
+test("OpenRouter proxy preserves conversational context", async (testContext) => {
+  await runProviderAssertion(
+    testContext,
+    "OpenRouter",
+    createOpenRouterAssistant,
+    callOpenRouter,
+    (assistant) => assistant.messages,
+    assertOpenRouterHistory
   );
 });
