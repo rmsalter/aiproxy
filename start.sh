@@ -3,7 +3,10 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
-if [[ -f ".env.modelspecs" ]]; then
+# Prefer standard .env for local/dev, but keep legacy .env.modelspecs compatibility.
+if [[ -f ".env" ]]; then
+  source ./.env
+elif [[ -f ".env.modelspecs" ]]; then
   source ./.env.modelspecs
 fi
 
@@ -32,15 +35,11 @@ if [[ -z "${GITHUB_TOKEN:-}" ]]; then
 fi
 
 if [[ -z "${OPENROUTER_API_KEY:-}" ]]; then
-  read -rsp "Enter OPENROUTER_API_KEY: " OPENROUTER_API_KEY
-  echo
-  export OPENROUTER_API_KEY
+  echo "Warning: OPENROUTER_API_KEY is not set. The OpenRouter route will stay disabled until it is configured." >&2
 fi
 
 if [[ -z "${DEEPSEEK_API_KEY:-}" ]]; then
-  read -rsp "Enter DEEPSEEK_API_KEY: " DEEPSEEK_API_KEY
-  echo
-  export DEEPSEEK_API_KEY
+  echo "Warning: DEEPSEEK_API_KEY is not set. The DeepSeek route will stay disabled until it is configured." >&2
 fi
 
 if [[ -z "${GEMINI_URL:-}" ]]; then
@@ -59,5 +58,5 @@ if [[ -z "${DEEPSEEK_URL:-}" ]]; then
   echo "Warning: DEEPSEEK_URL is not set. The DeepSeek route will stay disabled until it is configured." >&2
 fi
 
-echo "Starting unified server on http://localhost:${PORT} (Gemini, GitHub Models, and OpenRouter routes configured as available) ..."
+echo "Starting unified server on http://localhost:${PORT} (Gemini, GitHub Models, OpenRouter, and DeepSeek routes configured as available) ..."
 exec /usr/local/bin/node server.cjs

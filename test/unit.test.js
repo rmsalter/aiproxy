@@ -4,9 +4,11 @@ import test from "node:test";
 import {
   PROMPTS,
   assertChatGPTHistory,
+  assertDeepSeekHistory,
   assertGeminiHistory,
   assertOpenRouterHistory,
   createChatGPTAssistant,
+  createDeepSeekAssistant,
   createGeminiAssistant,
   createOpenRouterAssistant,
   requestWithRetry,
@@ -78,6 +80,16 @@ test("runPrompt records OpenRouter history on successful two-turn conversation",
   assertOpenRouterHistory(assistant.messages, PROMPTS);
 });
 
+test("runPrompt records DeepSeek history on successful two-turn conversation", async () => {
+  const assistant = createDeepSeekAssistant();
+  const responses = ["2 + 2 equals 4.", "4 multiplied by 10 equals 40."];
+
+  await runPrompt("DeepSeek", assistant, PROMPTS[0], async () => responses.shift(), "DeepSeek response did not include any text.", fastRetryOptions);
+  await runPrompt("DeepSeek", assistant, PROMPTS[1], async () => responses.shift(), "DeepSeek response did not include any text.", fastRetryOptions);
+
+  assertDeepSeekHistory(assistant.messages, PROMPTS);
+});
+
 test("runPrompt rolls back failed Gemini user turns", async () => {
   const assistant = createGeminiAssistant();
 
@@ -130,6 +142,26 @@ test("runPrompt rolls back failed OpenRouter user turns", async () => {
         throw new Error("HTTP 500");
       },
       "OpenRouter response did not include any text.",
+      fastRetryOptions
+    ),
+    /HTTP 500/
+  );
+
+  assert.deepEqual(assistant.messages, [{ role: "system", content: assistant.system_instruction.content }]);
+});
+
+test("runPrompt rolls back failed DeepSeek user turns", async () => {
+  const assistant = createDeepSeekAssistant();
+
+  await assert.rejects(
+    runPrompt(
+      "DeepSeek",
+      assistant,
+      PROMPTS[0],
+      async () => {
+        throw new Error("HTTP 500");
+      },
+      "DeepSeek response did not include any text.",
       fastRetryOptions
     ),
     /HTTP 500/
