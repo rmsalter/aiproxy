@@ -23,14 +23,14 @@ The proxy uses these values:
 - `GEMINI_URL` required Gemini upstream URL, typically defined in terms of `GEMINI_MODEL` and `GEMINI_API_KEY`
 - `GH_URL` required GitHub Models upstream URL
 
-`start.sh` sources `.env.modelspecs` if it exists, exports the variables above, prompts for missing API keys, and starts `server.cjs`.
+`start.sh` sources `.env` if it exists (fallback to legacy `.env.modelspecs`), exports the variables above, prompts for missing API keys, and starts `server.cjs`.
 
-Use `.env.modelspecs.example` as the tracked template, then create your local `.env.modelspecs` with real credentials.
+Use `.env.modelspecs.example` as the tracked template, then create your local `.env` with real credentials.
 
 Template file:
 
 ```bash
-cp .env.modelspecs.example .env.modelspecs
+cp .env.modelspecs.example .env
 ```
 
 Example `.env.modelspecs.example`:
@@ -46,7 +46,7 @@ PORT=3000
 
 With that layout, the Gemini model name appears only once in the file, and `GEMINI_URL` is derived from it when the file is sourced by `bash`.
 
-`.env.modelspecs` should stay untracked and contain your real keys. `.env.modelspecs.example` is the safe file to commit and document.
+`.env` should stay untracked and contain your real keys. `.env.modelspecs.example` is the safe file to commit and document.
 
 ## How To Run (Local / Dev)
 
@@ -54,7 +54,7 @@ There are two ways to start the server locally. Both end up running `node server
 
 ### Option A — via start.sh (recommended for local dev)
 
-`start.sh` sources `.env.modelspecs` if it exists, exports all required variables, and prompts interactively for any that are still missing (e.g. API keys). This is the easiest path when you do not want to export variables manually.
+`start.sh` sources `.env` if it exists (fallback to `.env.modelspecs`), exports all required variables, and prompts interactively for any that are still missing (e.g. API keys). This is the easiest path when you do not want to export variables manually.
 
 Run it directly:
 

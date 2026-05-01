@@ -3,7 +3,10 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
-if [[ -f ".env.modelspecs" ]]; then
+# Prefer standard .env for local/dev, but keep legacy .env.modelspecs compatibility.
+if [[ -f ".env" ]]; then
+  source ./.env
+elif [[ -f ".env.modelspecs" ]]; then
   source ./.env.modelspecs
 fi
 
