@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 
-import { GeminiChatManager, ChatGPTChatManager } from "./chatmanagers.js";
+import { GeminiChatManager, ChatGPTChatManager, ORChatManager, DSChatManager } from "./chatmanagers.js";
 
 const SYSTEM_PROMPT = "You are a helpful teaching assistant.";
 const PROMPTS = ["What is 2+2?", "Now multiply that by 10."];
@@ -51,6 +51,14 @@ function createGeminiAssistant() {
 
 function createChatGPTAssistant() {
   return new ChatGPTChatManager(SYSTEM_PROMPT);
+}
+
+function createOpenRouterAssistant() {
+  return new ORChatManager(SYSTEM_PROMPT);
+}
+
+function createDeepSeekAssistant() {
+  return new DSChatManager(SYSTEM_PROMPT);
 }
 
 function rollbackFailedUserTurn(assistant) {
@@ -111,6 +119,28 @@ function assertChatGPTHistory(messages, prompts = PROMPTS) {
   assert.ok(messages[4].content.trim().length > 0);
 }
 
+function assertOpenRouterHistory(messages, prompts = PROMPTS) {
+  assert.equal(messages.length, 5, "OpenRouter history should contain one system message plus two user/model turns.");
+  assert.deepEqual(messages[0], { role: "system", content: SYSTEM_PROMPT });
+  assert.deepEqual(messages[1], { role: "user", content: prompts[0] });
+  assert.equal(messages[2].role, "assistant");
+  assert.deepEqual(messages[3], { role: "user", content: prompts[1] });
+  assert.equal(messages[4].role, "assistant");
+  assert.ok(messages[2].content.trim().length > 0);
+  assert.ok(messages[4].content.trim().length > 0);
+}
+
+function assertDeepSeekHistory(messages, prompts = PROMPTS) {
+  assert.equal(messages.length, 5, "DeepSeek history should contain one system message plus two user/model turns.");
+  assert.deepEqual(messages[0], { role: "system", content: SYSTEM_PROMPT });
+  assert.deepEqual(messages[1], { role: "user", content: prompts[0] });
+  assert.equal(messages[2].role, "assistant");
+  assert.deepEqual(messages[3], { role: "user", content: prompts[1] });
+  assert.equal(messages[4].role, "assistant");
+  assert.ok(messages[2].content.trim().length > 0);
+  assert.ok(messages[4].content.trim().length > 0);
+}
+
 async function assertConversation(assistant, prompts, callModel, getHistory) {
   const firstAnswer = await callModel(assistant, prompts[0]);
   assertAnswerLooksRight(firstAnswer, /\b(4|four)\b/i);
@@ -144,8 +174,12 @@ export {
   assertChatGPTHistory,
   assertConversation,
   assertGeminiHistory,
+  assertOpenRouterHistory,
+  assertDeepSeekHistory,
   createChatGPTAssistant,
   createGeminiAssistant,
+  createOpenRouterAssistant,
+  createDeepSeekAssistant,
   isTransientModelError,
   requestWithRetry,
   rollbackFailedUserTurn,

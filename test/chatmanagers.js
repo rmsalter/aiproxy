@@ -1,4 +1,7 @@
-const GH_MODEL = "gpt-4o-mini";
+const GH_MODEL = "gpt-4o-mini",
+      ORF_MODEL = "openrouter/free",
+      ORD_MODEL = "deepseek/deepseek-v3:free",
+      DS_MODEL = "deepseek-v4-flash";
 
 class ChatManager {
     constructor(){this.counter = 0;};
@@ -41,9 +44,10 @@ class GeminiChatManager extends ChatManager {
   }
 }
 
-class ChatGPTChatManager extends ChatManager {
-  constructor(systemInstruction) {
+class OAIChatManager extends ChatManager {
+  constructor(systemInstruction, model) {
     super()
+    this.model = model;
     this.system_instruction = { role: "system", content: systemInstruction };
     this.messages = [this.system_instruction];
   }
@@ -53,7 +57,7 @@ class ChatGPTChatManager extends ChatManager {
   prepareRequest(userPrompt) {
     this.messages.push({ role: "user", content: userPrompt });
     return {
-      model: GH_MODEL,
+      model: this.model,
       messages: this.messages
     };
   }
@@ -67,4 +71,25 @@ class ChatGPTChatManager extends ChatManager {
   }
 }
 
-export {GeminiChatManager, ChatGPTChatManager}
+class ChatGPTChatManager extends OAIChatManager {
+  constructor(systemInstruction) {
+    super(systemInstruction, GH_MODEL);
+  }
+}
+class ORFChatManager extends OAIChatManager {
+  constructor(systemInstruction) {
+    super(systemInstruction, ORF_MODEL);
+  }
+}
+class ORDChatManager extends OAIChatManager {
+  constructor(systemInstruction) {
+    super(systemInstruction, ORD_MODEL);
+  }
+}
+class DSChatManager extends OAIChatManager {
+  constructor(systemInstruction) {
+    super(systemInstruction, DS_MODEL);
+  }
+}
+
+export {GeminiChatManager, ChatGPTChatManager, ORFChatManager as ORChatManager, DSChatManager}
