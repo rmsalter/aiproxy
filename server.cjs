@@ -12,7 +12,9 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const DEEPSEEK_API_KEY = process.env.DEEPSEEK_API_KEY;
-const DEEPSEEK_URL = process.env.DEEPSEEK_URL ;
+const DEEPSEEK_URL = process.env.DEEPSEEK_URL;
+const LL_URL = process.env.LL_URL;
+const LL_API_KEY = process.env.LL_API_KEY;
 
 function logMissingEnvWarning(routeLabel, envName) {
   console.log(`${routeLabel} route disabled until ${envName} is set.`);
@@ -133,10 +135,10 @@ function handleOpenAIModelsPrompt(token, url, tokenName) {
         return;
       }
 
-      const text = data.choices && data.choices[0] && data.choices[0].message
-        ? data.choices[0].message.content
-        : "No response text returned.";
-
+      const dirtytext = data.choices && data.choices[0] && data.choices[0].message
+            ? data.choices[0].message.content
+            : "No response text returned.",
+          text = dirtytext.replace(/\\n/g, "\n").replace(/\\'/g, "'");
       sendJson(res, 200, { text });
     } catch (error) {
       sendJson(res, 500, { error: error.message });
@@ -147,6 +149,7 @@ function handleOpenAIModelsPrompt(token, url, tokenName) {
 var handleGitHubModelsPrompt = handleOpenAIModelsPrompt(GITHUB_TOKEN, GH_URL, "GITHUB_TOKEN");
 var handleOpenRouterModelsPrompt = handleOpenAIModelsPrompt(OPENROUTER_API_KEY, OPENROUTER_URL, "OPENROUTER_API_KEY");
 var handleDeepSeekPrompt = handleOpenAIModelsPrompt(DEEPSEEK_API_KEY, DEEPSEEK_URL, "DEEPSEEK_API_KEY");
+var handleLLPrompt = handleOpenAIModelsPrompt(LL_API_KEY, LL_URL, "LL_API_KEY");
 
 const server = http.createServer((req, res) => {
   if (req.method === "OPTIONS") {
@@ -170,6 +173,9 @@ const server = http.createServer((req, res) => {
         return;
       case "/api/dsprompt":
         handleDeepSeekPrompt(req, res);
+        return;
+      case "/api/llprompt":
+        handleLLPrompt(req, res);
         return;
       default:
         break;
@@ -204,5 +210,8 @@ server.listen(PORT, () => {
   }
   if (!OPENROUTER_URL) {
     logMissingEnvWarning("OpenRouter", "OPENROUTER_URL");
+  }  
+  if (!LL_URL) {
+    logMissingEnvWarning("Meta-Llama", "LL_URL");
   }
 });

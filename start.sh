@@ -16,11 +16,13 @@ export GEMINI_API_KEY="${GEMINI_API_KEY:-}"
 export GEMINI_MODEL="${GEMINI_MODEL:-}"
 export GEMINI_URL="${GEMINI_URL:-}"
 export GITHUB_TOKEN="${GITHUB_TOKEN:-}"
+export LL_API_KEY="${LL_API_KEY:-}"
 export GH_URL="${GH_URL:-}"
 export OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
 export OPENROUTER_URL=${OPENROUTER_URL:-}
 export DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
 export DEEPSEEK_URL=${DEEPSEEK_URL:-}
+export LL_URL=${LL_URL:-}
 
 if [[ -z "${GEMINI_API_KEY:-}" ]]; then
   read -rsp "Enter GEMINI_API_KEY: " GEMINI_API_KEY
