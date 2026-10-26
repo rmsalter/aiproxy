@@ -64,6 +64,47 @@ function readRequestBody(req) {
   });
 }
 
+// Optional, proxy-only request field. When present it is removed from the payload and
+// placed where the upstream provider expects it (Gemini: generationConfig,
+// OpenAI-compatible: response_format). Requests without it are forwarded unchanged.
+const RESPONSE_FORMAT_KEY = "responseFormat";
+
+function isPlainObject(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function placeGeminiResponseFormat(payload, responseFormat) {
+  const existing = isPlainObject(payload.generationConfig) ? payload.generationConfig : {};
+  payload.generationConfig = { ...existing, ...responseFormat };
+}
+
+function placeOpenAIResponseFormat(payload, responseFormat) {
+  payload.response_format = responseFormat;
+}
+
+// Returns { body, structured } or { error } for an invalid responseFormat.
+function applyResponseFormat(rawBody, place) {
+  let payload;
+  try {
+    payload = JSON.parse(rawBody);
+  } catch {
+    return { body: rawBody, structured: false };
+  }
+  if (!isPlainObject(payload) || !Object.prototype.hasOwnProperty.call(payload, RESPONSE_FORMAT_KEY)) {
+    return { body: rawBody, structured: false };
+  }
+  const responseFormat = payload[RESPONSE_FORMAT_KEY];
+  delete payload[RESPONSE_FORMAT_KEY];
+  if (responseFormat === null || responseFormat === undefined) {
+    return { body: JSON.stringify(payload), structured: false };
+  }
+  if (!isPlainObject(responseFormat)) {
+    return { error: `${RESPONSE_FORMAT_KEY} must be a JSON object.` };
+  }
+  place(payload, responseFormat);
+  return { body: JSON.stringify(payload), structured: true };
+}
+
 async function handleGeminiPrompt(req, res) {
   if (!GEMINI_API_KEY) {
     sendJson(res, 500, { error: "Missing GEMINI_API_KEY environment variable." });
@@ -71,7 +112,12 @@ async function handleGeminiPrompt(req, res) {
   }
 
   try {
-    const body = await readRequestBody(req);
+    const prepared = applyResponseFormat(await readRequestBody(req), placeGeminiResponseFormat);
+    if (prepared.error) {
+      sendJson(res, 400, { error: prepared.error });
+      return;
+    }
+    const body = prepared.body;
     const response = await fetch(GEMINI_URL,
       {
         method: "POST",
@@ -113,7 +159,12 @@ function handleOpenAIModelsPrompt(token, url, tokenName) {
     }
 
     try {
-      const body = await readRequestBody(req);
+      const prepared = applyResponseFormat(await readRequestBody(req), placeOpenAIResponseFormat);
+      if (prepared.error) {
+        sendJson(res, 400, { error: prepared.error });
+        return;
+      }
+      const body = prepared.body;
       const response = await fetch(url,
         {
           method: "POST",
@@ -132,6 +183,16 @@ function handleOpenAIModelsPrompt(token, url, tokenName) {
           ? data.error.message
           : "Upstream API error";
         sendJson(res, response.status, { error: message });
+        return;
+      }
+
+      if (prepared.structured) {
+        // Structured (JSON) output must be returned verbatim; unescaping would corrupt it.
+        const message = data.choices && data.choices[0] && data.choices[0].message;
+        const text = message && typeof message.content === "string"
+          ? message.content
+          : "No response text returned.";
+        sendJson(res, 200, { text });
         return;
       }
 

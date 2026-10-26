@@ -121,6 +121,17 @@ Current examples live in these files:
 - [/Users/rms/Sites/WY/aiproxy/test/chatmanagers.js](/Users/rms/Sites/WY/aiproxy/test/chatmanagers.js)
 - [/Users/rms/Sites/WY/aiproxy/test/endpoints.js](/Users/rms/Sites/WY/aiproxy/test/endpoints.js)
 
+### Optional `responseFormat` (structured output)
+
+A request body may include an optional top-level `responseFormat` object. The proxy removes it from the payload and places it where the upstream provider expects it:
+
+- `/api/gemprompt`: merged into `generationConfig` (existing `generationConfig` keys are preserved), e.g. `{ "responseMimeType": "application/json", "responseSchema": { ... } }`
+- `/api/ghprompt`, `/api/orprompt`, `/api/dsprompt`, `/api/llprompt`: set as `response_format`, e.g. `{ "type": "json_schema", "json_schema": { ... } }` or `{ "type": "json_object" }`
+
+When `responseFormat` is present, OpenAI-style reply text is returned verbatim (the legacy `\n`/`\'` unescaping is skipped so JSON stays valid). A `null` value is stripped and treated as absent; a non-object value returns `400`.
+
+Requests without `responseFormat` are forwarded byte-for-byte as before. Deploy this proxy before clients that send `responseFormat`, since older proxies would forward the unknown field upstream.
+
 Successful responses are normalized to:
 
 ```json
@@ -145,7 +156,7 @@ Run local logic only:
 npm test
 ```
 
-These tests do not call the network. They cover retry behavior, empty-response handling, rollback of failed user turns, and conversation-history updates. This is the CI-friendly layer because failures here usually mean local code regressed.
+These tests do not call the network. They cover retry behavior, empty-response handling, rollback of failed user turns, and conversation-history updates. `test/responseformat.test.js` spawns `server.cjs` against a local mock upstream to verify `responseFormat` handling and unchanged legacy forwarding. This is the CI-friendly layer because failures here usually mean local code regressed.
 
 ### Live Integration Tests
 
